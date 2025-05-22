@@ -217,6 +217,13 @@ class DataCenterEnv(ABC, gym.Env):
         self.inputs = [inp1_ranged, inp2_ranged, inp3_ranged]
         return action_values
 
+    def energy_penalty(self, energy_coeff=0.00001):
+        """Calculate energy penalty for the current step."""
+        return convert_joules_to_watts(
+            self.outputs[28],
+            self.timestamps_in_hour
+        ) * energy_coeff
+
     def construct_reward(self, action: list[float]) -> float:
         """
         Construct reward based on actions, input, DC info.
@@ -244,12 +251,6 @@ class DataCenterEnv(ABC, gym.Env):
                     if reward_if_not_cold and temp >= 16.5 and temp < 24.5:
                         res -= 0.5
             return res
-
-        def energy_penalty(self, energy_coeff=0.00001):
-            return convert_joules_to_watts(
-                        self.outputs[28],
-                        self.timestamps_in_hour
-                    ) * energy_coeff
 
         def rh_penalty(self, lb_coeff=0.5, ub_coeff=1):
             res = 0
@@ -285,7 +286,7 @@ class DataCenterEnv(ABC, gym.Env):
 
             return res * coeff
 
-        energy_reward = -energy_penalty(self, energy_coeff=0.00002)
+        energy_reward = -self.energy_penalty(energy_coeff=0.00002)
         action_reward = -action_penalty(self, action, force_action=True)
         rh_reward = -rh_penalty(self)
         temp_reward = -temp_penalty(self, reward_if_not_cold=False)
